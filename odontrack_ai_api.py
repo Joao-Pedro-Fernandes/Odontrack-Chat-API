@@ -5,7 +5,7 @@ from sse_starlette.sse import EventSourceResponse
 
 app = FastAPI()
 
-client = Groq(api_key="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")
+client = Groq(api_key="")
 
 system_prompt = {
     "role": "system",

@@ -1,0 +1,15 @@
+Primeiro instale todas as bibliotecas necessárias:
+
+    pip install fastapi
+    pip install uvicorn
+    pip install groq
+    pip install sse-starlette
+    pip install anyio
+
+Não se esqueça de colocar a sua chave de API do Groq na linha 8 do código!!!
+
+Depois rode o projeto com o comando:
+
+    python -m uvicorn odontrack_ai_api:app --reload
+
+obs: esse comando usará a instalação global do python
