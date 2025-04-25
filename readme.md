@@ -8,7 +8,7 @@
     pip install anyio
 
 ## 🔑 Configuração da Chave de API
-- Não se esqueça de colocar a sua chave de API do Groq na linha 8 do código!!!
+- Não se esqueça de colocar a sua chave de API do Groq na linha 19 do código!!!
 
 ## 🚀 Rodando o Projeto
 - Execute o comando abaixo para iniciar a aplicação:
