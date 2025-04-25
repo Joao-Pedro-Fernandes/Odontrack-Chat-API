@@ -36,7 +36,7 @@ async def perguntar(request: Request):
     if not pergunta:
         return {"erro": "Pergunta não fornecida."}
 
-    def event_stream():
+    async def event_stream():
         response = client.chat.completions.create(
             model="llama3-8b-8192",
             messages=[
@@ -46,9 +46,11 @@ async def perguntar(request: Request):
             stream=True
         )
 
-        for chunk in response:
-            content = chunk.choices[0].delta.content
-            if content:
-                yield f"data: {content}\n\n"
+        full_text = ""
+        async for chunk in response:
+            delta = chunk.choices[0].delta
+            if delta and delta.content:
+                full_text += delta.content
+                yield f"data: {delta.content}\n\n"
 
     return EventSourceResponse(event_stream())
