@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-odon-track-chat-ai-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app-odon-track-chat-ai-api
+  template:
+    metadata:
+      labels:
+        app: app-odon-track-chat-ai-api
+    spec:
+      containers:
+      - name: app-odon-track-chat-ai-api
+        imagePullPolicy: IfNotPresent
+        image: app-odon-track-chat-ai-api-image:latest
+        ports:
+        - containerPort: 5001

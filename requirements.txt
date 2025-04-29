@@ -1,0 +1,5 @@
+pip install fastapi
+pip install uvicorn
+pip install groq
+pip install sse-starlette
+pip install anyio
