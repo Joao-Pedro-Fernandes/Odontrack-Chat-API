@@ -2,14 +2,14 @@ from groq import AsyncGroq
 from fastapi import FastAPI, Request
 from sse_starlette.sse import EventSourceResponse
 from fastapi.middleware.cors import CORSMiddleware
-import os
+import re
 
 app = FastAPI()
 
-# Configurar o CORS
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # ajuste para o domínio do seu frontend se necessário
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -18,16 +18,24 @@ app.add_middleware(
 client = AsyncGroq(api_key="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")
 
 system_prompt = (
-    "Aja como o SIMPATICO, um professor assistente virtual da Universidade Unifenas - campus Alfenas, especializado no curso de Odontologia. "
-    "Você é um sistema inteligente de mediação pedagógica, com linguagem clara, empática e acessível, capaz de ensinar todas as disciplinas da graduação em Odontologia — desde as básicas como Anatomia, Histologia, Fisiologia e Bioquímica, até as clínicas como Dentística, Periodontia, Endodontia, Cirurgia, Prótese, Ortodontia e Odontopediatria. "
-    "Fale como um professor dedicado ao ensino: explique os conteúdos de forma progressiva, use exemplos práticos, analogias, linguagem envolvente e didática. Sempre que possível, estimule o raciocínio crítico dos alunos, conecte a teoria com a prática clínica e mostre a relevância do conteúdo para a formação do cirurgião-dentista. "
-    "Organize suas respostas em tópicos quando apropriado, ofereça resumos ao final, e esteja pronto para revisar ou aprofundar os temas conforme solicitado. Você pode também sugerir leituras complementares, imagens ilustrativas, artigos científicos ou quizzes interativos para reforço. "
-    "Lembre-se: você é o SIMPATICO, um professor sempre disponível para apoiar o aluno com empatia, paciência e excelência pedagógica."
+    "Você é o **SIMPATICO**, um professor assistente virtual da Universidade Unifenas - campus Alfenas, "
+    "especializado no curso de Odontologia. Seu papel é ajudar estudantes e interessados na área, explicando conteúdos "
+    "de forma clara, empática e didática. Utilize sempre a estrutura **Markdown** para organizar suas respostas:\n\n"
+    "- Use `#` para títulos e `##` para subtítulos;\n"
+    "- Use listas com `-` ou `1.`;\n"
+    "- Utilize **negrito** e *itálico* para destacar termos importantes.\n\n"
+    "Ao final de cada explicação, forneça um **resumo** dos principais pontos abordados e, sempre que possível, "
+    "indique **leituras ou fontes complementares** confiáveis.\n\n"
+    "Responda **exclusivamente sobre temas relacionados à Odontologia**. Se o tema não for pertinente à área, recuse a resposta com gentileza, explicando que só responde a perguntas sobre Odontologia.\n\n"
+    "Responda sempre em **português brasileiro**, a menos que seja explicitamente solicitado outro idioma.\n"
+    "Seja acolhedor, simpático e acessível em seu tom de fala, como um verdadeiro professor dedicado aos seus alunos."
 )
 
-async def gerar_resposta(pergunta: str):
+
+
+async def gerar_resposta_stream(pergunta: str):
     stream = await client.chat.completions.create(
-        model="llama3-8b-8192",
+        model="llama-3.3-70b-versatile",
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": pergunta},
@@ -35,20 +43,26 @@ async def gerar_resposta(pergunta: str):
         stream=True
     )
 
-    buffer = ""  # Variável para acumular as partes da resposta
-
+    buffer = ""
     async for chunk in stream:
         delta = chunk.choices[0].delta
         if delta and delta.content:
-            buffer += delta.content  # Acumula o conteúdo recebido
+            buffer += delta.content
 
-            # Verifica se a resposta contém um ponto final (ou outro caractere de término de frase)
-            if buffer.endswith(('.', '!', '?')):  # Frase completa
-                yield f"{buffer.strip()}\n\n"
-                buffer = ""  # Reseta o buffer para a próxima frase
+            # Verifica se há uma palavra ou frase completa (final com espaço ou pontuação)
+            if re.search(r"[\s.,;!?]$", buffer):
+                yield f" {buffer}\n\n"
+                buffer = ""
+
+    # Envia qualquer sobra final
+    if buffer:
+        yield f" {buffer}\n\n"
+
+    yield " \n\n"
+
 
 @app.post("/perguntar")
 async def perguntar(request: Request):
     body = await request.json()
     pergunta = body.get("pergunta")
-    return EventSourceResponse(gerar_resposta(pergunta))
+    return EventSourceResponse(gerar_resposta_stream(pergunta), media_type="text/event-stream")
