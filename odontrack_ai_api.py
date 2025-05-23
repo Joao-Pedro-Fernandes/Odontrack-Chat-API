@@ -16,7 +16,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-client = AsyncGroq(api_key="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")
+client = AsyncGroq(api_key="")
 
 
 async def gerar_resposta_stream(pergunta: str):
@@ -51,4 +51,38 @@ async def gerar_resposta_stream(pergunta: str):
 async def perguntar(request: Request):
     body = await request.json()
     pergunta = body.get("pergunta")
-    return EventSourceResponse(gerar_resposta_stream(pergunta), media_type="text/event-stream")
+    historico = body.get("historico", [])  # deve ser uma lista de mensagens estilo OpenAI
+
+    # Adiciona o system prompt apenas se não estiver no histórico
+    if not any(msg["role"] == "system" for msg in historico):
+        historico.insert(0, {"role": "system", "content": system_prompt})
+
+    # Adiciona a nova pergunta do usuário
+    historico.append({"role": "user", "content": pergunta})
+
+    async def gerar_resposta_stream_contextual():
+        stream = await client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=historico,
+            stream=True
+        )
+
+        buffer = ""
+        resposta_final = ""
+
+        async for chunk in stream:
+            delta = chunk.choices[0].delta
+            if delta and delta.content:
+                buffer += delta.content
+                resposta_final += delta.content
+                if re.search(r"[\s.,;!?]$", buffer):
+                    yield f" {buffer}\n\n"
+                    buffer = ""
+
+        if buffer:
+            yield f" {buffer}\n\n"
+
+        yield " \n\n"
+
+    return EventSourceResponse(gerar_resposta_stream_contextual(), media_type="text/event-stream")
+
