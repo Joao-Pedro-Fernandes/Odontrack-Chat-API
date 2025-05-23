@@ -11,4 +11,4 @@ COPY . .
 
 EXPOSE 5001
 
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5001", "odontrack_ai_api.py:app"]
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5001", "odontrack_ai_api:app"]
