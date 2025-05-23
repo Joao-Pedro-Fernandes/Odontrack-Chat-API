@@ -16,7 +16,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-client = AsyncGroq(api_key="")
+client = AsyncGroq(api_key="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")
 
 
 async def gerar_resposta_stream(pergunta: str):
@@ -86,3 +86,24 @@ async def perguntar(request: Request):
 
     return EventSourceResponse(gerar_resposta_stream_contextual(), media_type="text/event-stream")
 
+
+@app.post("/obterTitulo")
+async def obterTitulo(request: Request):
+    body = await request.json()
+    pergunta = body.get("pergunta")
+
+    response = await client.chat.completions.create(
+        model="llama3-8b-8192",
+        messages=[
+            {
+                "role": "user",
+                "content": (
+                    f"Quero que você gere um título para a nossa conversa com base na seguinte pergunta: {pergunta}."
+                    "Não retorne nada além do título."
+                    "Retorne o titulo dentro de chaves."
+                )
+            },
+        ]
+    )
+    titulo = response.choices[0].message.content
+    return {"titulo": titulo}
