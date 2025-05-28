@@ -16,7 +16,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-client = AsyncGroq(api_key="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")
+client = AsyncGroq(api_key="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")
 
 
 async def gerar_resposta_stream(pergunta: str):
